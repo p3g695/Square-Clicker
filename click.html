@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Square Clicker</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #121212;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    /* Score Header (Top-Left) */
+    #score-container {
+      position: fixed;
+      top: 15px;
+      left: 20px;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: 1px solid #2a2a2a;
+      z-index: 10;
+    }
+    #score {
+      font-size: 24px;
+      font-weight: bold;
+      color: #4cd137;
+    }
+    #cps {
+      font-size: 14px;
+      color: #aaa;
+      margin-top: 2px;
+    }
+
+    /* Main Container */
+    .game-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 60px;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    /* Clicker Square */
+    #click-square {
+      width: 160px;
+      height: 160px;
+      background: linear-gradient(135deg, #00a8ff, #9c88ff);
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0, 168, 255, 0.3);
+      cursor: pointer;
+      margin-bottom: 20px;
+      transition: transform 0.05s ease-in-out;
+    }
+    #click-square:active {
+      transform: scale(0.92);
+    }
+
+    /* Click Animation Helper */
+    .click-anim {
+      transform: scale(0.92) !important;
+    }
+
+    /* Reset Button */
+    .reset-btn {
+      background-color: #e74c3c;
+      color: #fff;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      margin-bottom: 20px;
+      transition: background-color 0.2s;
+    }
+    .reset-btn:hover {
+      background-color: #c0392b;
+    }
+
+    /* Shop Section */
+    .shop-title {
+      font-size: 28px;
+      font-weight: bold;
+      border-bottom: 2px solid #333;
+      padding-bottom: 8px;
+      margin-bottom: 15px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .shop-container {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 450px;
+      overflow-y: auto;
+      padding-right: 5px;
+    }
+
+    /* Custom Scrollbar for Shop */
+    .shop-container::-webkit-scrollbar {
+      width: 8px;
+    }
+    .shop-container::-webkit-scrollbar-track {
+      background: #1a1a1a;
+      border-radius: 4px;
+    }
+    .shop-container::-webkit-scrollbar-thumb {
+      background: #333;
+      border-radius: 4px;
+    }
+
+    /* Shop Items */
+    .shop-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #1e1e1e;
+      border: 1px solid #2e2e2e;
+      padding: 12px 16px;
+      border-radius: 8px;
+      transition: background-color 0.2s, border-color 0.2s;
+    }
+    .shop-item.affordable {
+      border-color: #00a8ff;
+      background-color: #242b35;
+    }
+    .item-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .item-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #4cd137;
+    }
+    .item-cost {
+      font-size: 13px;
+      color: #aaa;
+    }
+    .buy-btn {
+      background-color: #333;
+      color: #777;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: not-allowed;
+      transition: background-color 0.2s, color 0.2s;
+    }
+    .shop-item.affordable .buy-btn {
+      background-color: #00a8ff;
+      color: #fff;
+      cursor: pointer;
+    }
+    .shop-item.affordable .buy-btn:hover {
+      background-color: #0097e6;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Score Display (Top Left) -->
+  <div id="score-container">
+    <div id="score">0 C</div>
+    <div id="cps">0 C/sec</div>
+  </div>
+
+  <!-- Game Area -->
+  <div class="game-area">
+    <!-- Clickable Square -->
+    <div id="click-square"></div>
+
+    <!-- Reset Progress Button -->
+    <button class="reset-btn" onclick="resetGame()">Reset Progress</button>
+
+    <!-- Shop Title -->
+    <div class="shop-title">Shop</div>
+
+    <!-- Shop Upgrades -->
+    <div class="shop-container" id="shop"></div>
+  </div>
+
+  <script>
+    let score = 0;
+    let cps = 0;
+
+    const itemsData = [
+      { cps: 5, cost: 1 },
+      { cps: 10, cost: 3 },
+      { cps: 25, cost: 15 },
+      { cps: 75, cost: 30 },
+      { cps: 100, cost: 70 },
+      { cps: 500, cost: 250 },
+      { cps: 2500, cost: 1500 },
+      { cps: 7500, cost: 4000 },
+      { cps: 25000, cost: 11000 },
+      { cps: 80000, cost: 50000 },
+      { cps: 400000, cost: 200000 },
+      { cps: 925000, cost: 530000 },
+      { cps: 5000000, cost: 3200000 },
+      { cps: 20000000, cost: 12000000 },
+      { cps: 60000000, cost: 50000000 },
+      { cps: 350000000, cost: 100000000 },
+      { cps: 725000000, cost: 400000000 },
+      { cps: 1000000000, cost: 975000000 }
+    ];
+
+    const scoreEl = document.getElementById('score');
+    const cpsEl = document.getElementById('cps');
+    const squareEl = document.getElementById('click-square');
+    const shopEl = document.getElementById('shop');
+
+    // Save progress to LocalStorage
+    function saveGame() {
+      localStorage.setItem('squareClickerScore', score);
+      localStorage.setItem('squareClickerCPS', cps);
+    }
+
+    // Load progress from LocalStorage
+    function loadGame() {
+      const savedScore = localStorage.getItem('squareClickerScore');
+      const savedCPS = localStorage.getItem('squareClickerCPS');
+
+      if (savedScore !== null) {
+        score = parseFloat(savedScore);
+      }
+      if (savedCPS !== null) {
+        cps = parseFloat(savedCPS);
+      }
+    }
+
+    // Reset progress
+    window.resetGame = function() {
+      if (confirm("Are you sure you want to reset your progress?")) {
+        score = 0;
+        cps = 0;
+        localStorage.removeItem('squareClickerScore');
+        localStorage.removeItem('squareClickerCPS');
+        updateDisplay();
+      }
+    };
+
+    // Format numbers nicely (e.g., 1,000,000)
+    function formatNum(num) {
+      return Math.floor(num).toLocaleString();
+    }
+
+    // Update UI Elements
+    function updateDisplay() {
+      scoreEl.textContent = formatNum(score) + ' C';
+      cpsEl.textContent = formatNum(cps) + ' C/sec';
+      updateShopUI();
+    }
+
+    // Handle Manual Clicks
+    squareEl.addEventListener('click', () => {
+      score += 1;
+      saveGame();
+      updateDisplay();
+
+      // Trigger click animation class
+      squareEl.classList.add('click-anim');
+      setTimeout(() => squareEl.classList.remove('click-anim'), 50);
+    });
+
+    // Populate Shop
+    function initShop() {
+      shopEl.innerHTML = '';
+      itemsData.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = 'shop-item';
+        row.id = `item-${index}`;
+
+        row.innerHTML = `
+          <div class="item-info">
+            <span class="item-name">+${formatNum(item.cps)} Click per second</span>
+            <span class="item-cost">Price: ${formatNum(item.cost)} C</span>
+          </div>
+          <button class="buy-btn" onclick="buyUpgrade(${index})">Buy</button>
+        `;
+
+        shopEl.appendChild(row);
+      });
+    }
+
+    // Update Shop Affordability
+    function updateShopUI() {
+      itemsData.forEach((item, index) => {
+        const row = document.getElementById(`item-${index}`);
+        if (score >= item.cost) {
+          row.classList.add('affordable');
+        } else {
+          row.classList.remove('affordable');
+        }
+      });
+    }
+
+    // Buy Upgrade Function
+    window.buyUpgrade = function(index) {
+      const item = itemsData[index];
+      if (score >= item.cost) {
+        score -= item.cost;
+        cps += item.cps;
+        saveGame();
+        updateDisplay();
+      }
+    };
+
+    // Auto Clicker Loop (Runs 10 times per second for smooth generation)
+    setInterval(() => {
+      if (cps > 0) {
+        score += cps / 10;
+        updateDisplay();
+      }
+    }, 100);
+
+    // Auto-save every 5 seconds as a backup
+    setInterval(saveGame, 5000);
+
+    // Initial setup
+    loadGame();
+    initShop();
+    updateDisplay();
+  </script>
+</body>
+</html>
