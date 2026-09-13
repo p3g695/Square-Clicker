@@ -18,6 +18,7 @@
       flex-direction: column;
       align-items: center;
       min-height: 100vh;
+      overflow-x: hidden;
     }
 
     /* Score Header (Top-Left) */
@@ -62,6 +63,7 @@
       cursor: pointer;
       margin-bottom: 20px;
       transition: transform 0.05s ease-in-out;
+      position: relative;
     }
     #click-square:active {
       transform: scale(0.92);
@@ -70,6 +72,29 @@
     /* Click Animation Helper */
     .click-anim {
       transform: scale(0.92) !important;
+    }
+
+    /* Floating +1 Animation */
+    .floating-text {
+      position: fixed;
+      font-size: 20px;
+      font-weight: bold;
+      color: #4cd137;
+      pointer-events: none;
+      animation: floatUp 0.8s ease-out forwards;
+      z-index: 99;
+      text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+    }
+
+    @keyframes floatUp {
+      0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-50px) scale(1.2);
+      }
     }
 
     /* Reset Button */
@@ -88,28 +113,144 @@
       background-color: #c0392b;
     }
 
-    /* Shop Section */
-    .shop-title {
-      font-size: 28px;
+    /* Achievement Toast Notifications */
+    #toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 1000;
+    }
+    .toast {
+      background: #1e1e1e;
+      border: 2px solid #fbc531;
+      border-radius: 8px;
+      padding: 12px 18px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+      animation: slideIn 0.3s ease-out forwards;
+      min-width: 220px;
+    }
+    .toast-title {
+      font-size: 12px;
+      color: #fbc531;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .toast-desc {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      margin-top: 2px;
+    }
+
+    @keyframes slideIn {
+      0% { transform: translateX(100%); opacity: 0; }
+      100% { transform: translateX(0); opacity: 1; }
+    }
+
+    /* Achievements Dashboard Drawer */
+    .section-title {
+      font-size: 24px;
       font-weight: bold;
       border-bottom: 2px solid #333;
       padding-bottom: 8px;
-      margin-bottom: 15px;
+      margin: 25px 0 15px 0;
       width: 100%;
       text-align: center;
     }
+    .achievements-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      width: 100%;
+      margin-bottom: 30px;
+    }
+    .achievement-card {
+      background: #1a1a1a;
+      border: 1px solid #2e2e2e;
+      border-radius: 8px;
+      padding: 10px 14px;
+      opacity: 0.4;
+      transition: opacity 0.3s, border-color 0.3s;
+    }
+    .achievement-card.unlocked {
+      opacity: 1;
+      border-color: #fbc531;
+      background: #23221b;
+    }
+    .ach-name {
+      font-size: 14px;
+      font-weight: bold;
+      color: #fff;
+    }
+    .ach-desc {
+      font-size: 12px;
+      color: #888;
+      margin-top: 2px;
+    }
 
+    /* Offline Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+    .modal-card {
+      background: #1e1e1e;
+      border: 1px solid #00a8ff;
+      border-radius: 12px;
+      padding: 24px 32px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      max-width: 400px;
+      width: 90%;
+    }
+    .modal-card h2 {
+      margin-top: 0;
+      color: #4cd137;
+    }
+    .modal-card p {
+      color: #ccc;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    .modal-btn {
+      background: #00a8ff;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 15px;
+      font-size: 14px;
+    }
+    .modal-btn:hover {
+      background: #0097e6;
+    }
+
+    /* Shop Section */
     .shop-container {
       width: 100%;
       display: flex;
       flex-direction: column;
       gap: 8px;
-      max-height: 450px;
+      max-height: 350px;
       overflow-y: auto;
       padding-right: 5px;
     }
 
-    /* Custom Scrollbar for Shop */
+    /* Custom Scrollbar */
     .shop-container::-webkit-scrollbar {
       width: 8px;
     }
@@ -172,6 +313,18 @@
 </head>
 <body>
 
+  <!-- Toast Notification Area -->
+  <div id="toast-container"></div>
+
+  <!-- Offline Earnings Popup -->
+  <div id="offline-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <h2>Welcome Back!</h2>
+      <p id="offline-text">You were away for 0 seconds and earned 0 C!</p>
+      <button class="modal-btn" onclick="closeModal()">Collect C</button>
+    </div>
+  </div>
+
   <!-- Score Display (Top Left) -->
   <div id="score-container">
     <div id="score">0 C</div>
@@ -186,8 +339,12 @@
     <!-- Reset Progress Button -->
     <button class="reset-btn" onclick="resetGame()">Reset Progress</button>
 
+    <!-- Achievements Section -->
+    <div class="section-title">Achievements</div>
+    <div class="achievements-grid" id="achievements-grid"></div>
+
     <!-- Shop Title -->
-    <div class="shop-title">Shop</div>
+    <div class="section-title">Shop</div>
 
     <!-- Shop Upgrades -->
     <div class="shop-container" id="shop"></div>
@@ -196,6 +353,67 @@
   <script>
     let score = 0;
     let cps = 0;
+    let totalClicks = 0;
+    let unlockedAchievements = [];
+
+    // Web Audio Synthesizer setup
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new AudioContext();
+      }
+    }
+
+    function playClickSound() {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.05);
+
+      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.05);
+    }
+
+    function playAchievementSound() {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+
+      // Simple 2-note arpeggio chime
+      [523.25, 659.25, 783.99].forEach((freq, index) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.1, now + index * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.08 + 0.2);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(now + index * 0.08);
+        osc.stop(now + index * 0.08 + 0.2);
+      });
+    }
+
+    const achievementsData = [
+      { id: 'first_click', name: 'First Click', desc: 'Click the square once', req: () => totalClicks >= 1 },
+      { id: 'clicks_100', name: 'Clicker Pro', desc: 'Click 100 times manually', req: () => totalClicks >= 100 },
+      { id: 'score_1k', name: 'Thousandaire', desc: 'Reach 1,000 C total score', req: () => score >= 1000 },
+      { id: 'cps_100', name: 'Automation', desc: 'Reach 100 C/sec', req: () => cps >= 100 },
+      { id: 'score_1m', name: 'Millionaire', desc: 'Reach 1,000,000 C', req: () => score >= 1000000 },
+      { id: 'cps_1m', name: 'Factory Master', desc: 'Reach 1,000,000 C/sec', req: () => cps >= 1000000 }
+    ];
 
     const itemsData = [
       { cps: 5, cost: 1 },
@@ -222,61 +440,154 @@
     const cpsEl = document.getElementById('cps');
     const squareEl = document.getElementById('click-square');
     const shopEl = document.getElementById('shop');
+    const achGridEl = document.getElementById('achievements-grid');
+    const offlineModal = document.getElementById('offline-modal');
+    const offlineText = document.getElementById('offline-text');
 
     // Save progress to LocalStorage
     function saveGame() {
       localStorage.setItem('squareClickerScore', score);
       localStorage.setItem('squareClickerCPS', cps);
+      localStorage.setItem('squareClickerClicks', totalClicks);
+      localStorage.setItem('squareClickerAch', JSON.stringify(unlockedAchievements));
+      localStorage.setItem('squareClickerTime', Date.now());
     }
 
-    // Load progress from LocalStorage
+    // Load progress & calculate offline earnings
     function loadGame() {
       const savedScore = localStorage.getItem('squareClickerScore');
       const savedCPS = localStorage.getItem('squareClickerCPS');
+      const savedClicks = localStorage.getItem('squareClickerClicks');
+      const savedAch = localStorage.getItem('squareClickerAch');
+      const savedTime = localStorage.getItem('squareClickerTime');
 
-      if (savedScore !== null) {
-        score = parseFloat(savedScore);
-      }
-      if (savedCPS !== null) {
-        cps = parseFloat(savedCPS);
+      if (savedScore !== null) score = parseFloat(savedScore);
+      if (savedCPS !== null) cps = parseFloat(savedCPS);
+      if (savedClicks !== null) totalClicks = parseInt(savedClicks);
+      if (savedAch !== null) unlockedAchievements = JSON.parse(savedAch);
+
+      if (savedTime !== null && cps > 0) {
+        const timeDiffSeconds = Math.floor((Date.now() - parseFloat(savedTime)) / 1000);
+        if (timeDiffSeconds > 1) {
+          const offlineEarnings = timeDiffSeconds * cps;
+          score += offlineEarnings;
+
+          const formattedTime = formatTime(timeDiffSeconds);
+          offlineText.innerHTML = `You were away for <strong>${formattedTime}</strong> and generated <strong>${formatNum(offlineEarnings)} C</strong>!`;
+          offlineModal.style.display = 'flex';
+        }
       }
     }
+
+    function formatTime(seconds) {
+      if (seconds < 60) return `${seconds} seconds`;
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      if (mins < 60) return `${mins}m ${secs}s`;
+      const hrs = Math.floor(mins / 60);
+      const remMins = mins % 60;
+      return `${hrs}h ${remMins}m`;
+    }
+
+    window.closeModal = function() {
+      offlineModal.style.display = 'none';
+      saveGame();
+    };
 
     // Reset progress
     window.resetGame = function() {
       if (confirm("Are you sure you want to reset your progress?")) {
         score = 0;
         cps = 0;
-        localStorage.removeItem('squareClickerScore');
-        localStorage.removeItem('squareClickerCPS');
+        totalClicks = 0;
+        unlockedAchievements = [];
+        localStorage.clear();
+        initAchievements();
         updateDisplay();
       }
     };
 
-    // Format numbers nicely (e.g., 1,000,000)
     function formatNum(num) {
       return Math.floor(num).toLocaleString();
     }
 
-    // Update UI Elements
     function updateDisplay() {
       scoreEl.textContent = formatNum(score) + ' C';
       cpsEl.textContent = formatNum(cps) + ' C/sec';
       updateShopUI();
+      checkAchievements();
     }
 
-    // Handle Manual Clicks
-    squareEl.addEventListener('click', () => {
+    // Toast Popup
+    function triggerToast(name) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerHTML = `
+        <div class="toast-title">🏆 Achievement Unlocked!</div>
+        <div class="toast-desc">${name}</div>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 3500);
+    }
+
+    function initAchievements() {
+      achGridEl.innerHTML = '';
+      achievementsData.forEach(ach => {
+        const isUnlocked = unlockedAchievements.includes(ach.id);
+        const card = document.createElement('div');
+        card.className = `achievement-card ${isUnlocked ? 'unlocked' : ''}`;
+        card.id = `ach-${ach.id}`;
+        card.innerHTML = `
+          <div class="ach-name">${ach.name}</div>
+          <div class="ach-desc">${ach.desc}</div>
+        `;
+        achGridEl.appendChild(card);
+      });
+    }
+
+    function checkAchievements() {
+      achievementsData.forEach(ach => {
+        if (!unlockedAchievements.includes(ach.id) && ach.req()) {
+          unlockedAchievements.push(ach.id);
+          const card = document.getElementById(`ach-${ach.id}`);
+          if (card) card.classList.add('unlocked');
+          triggerToast(ach.name);
+          playAchievementSound();
+          saveGame();
+        }
+      });
+    }
+
+    function createFloatingText(x, y) {
+      const floatEl = document.createElement('div');
+      floatEl.className = 'floating-text';
+      floatEl.textContent = '+1';
+      
+      const randomOffset = (Math.random() - 0.5) * 20;
+      floatEl.style.left = `${x + randomOffset}px`;
+      floatEl.style.top = `${y - 10}px`;
+
+      document.body.appendChild(floatEl);
+      setTimeout(() => floatEl.remove(), 800);
+    }
+
+    // Handle Clicks
+    squareEl.addEventListener('click', (event) => {
+      initAudio();
+      playClickSound();
+
       score += 1;
+      totalClicks += 1;
       saveGame();
       updateDisplay();
 
-      // Trigger click animation class
+      createFloatingText(event.clientX, event.clientY);
+
       squareEl.classList.add('click-anim');
       setTimeout(() => squareEl.classList.remove('click-anim'), 50);
     });
 
-    // Populate Shop
     function initShop() {
       shopEl.innerHTML = '';
       itemsData.forEach((item, index) => {
@@ -296,7 +607,6 @@
       });
     }
 
-    // Update Shop Affordability
     function updateShopUI() {
       itemsData.forEach((item, index) => {
         const row = document.getElementById(`item-${index}`);
@@ -308,8 +618,8 @@
       });
     }
 
-    // Buy Upgrade Function
     window.buyUpgrade = function(index) {
+      initAudio();
       const item = itemsData[index];
       if (score >= item.cost) {
         score -= item.cost;
@@ -319,7 +629,7 @@
       }
     };
 
-    // Auto Clicker Loop (Runs 10 times per second for smooth generation)
+    // Auto Clicker Loop
     setInterval(() => {
       if (cps > 0) {
         score += cps / 10;
@@ -327,11 +637,12 @@
       }
     }, 100);
 
-    // Auto-save every 5 seconds as a backup
+    window.addEventListener('beforeunload', saveGame);
     setInterval(saveGame, 5000);
 
-    // Initial setup
+    // Startup
     loadGame();
+    initAchievements();
     initShop();
     updateDisplay();
   </script>
